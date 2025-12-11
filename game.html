@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clicker Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: #f0f2f5;
+  }
+
+  /* Shop (left) */
+  #shop {
+    width: 20%;
+    background-color: #ececec;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  #shop h2 {
+    text-align: center;
+  }
+
+  .shop-item {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .shop-item:hover {
+    background-color: #d1e7ff;
+    border-color: #66b3ff;
+  }
+
+  /* Main clicker area */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button {
+    padding: 12px 24px;
+    font-size: 18px;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    background-color: #4caf50;
+    color: white;
+    transition: all 0.2s;
+  }
+
+  button:hover {
+    background-color: #45a049;
+  }
+
+  /* Leaderboard (right) */
+  #leaderboard {
+    width: 20%;
+    background-color: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+    border-left: 3px solid #ccc;
+    overflow-y: auto;
+  }
+
+  #leaderboard h2 {
+    text-align: center;
+    color: #333;
+  }
+
+  #leaderboardList {
+    list-style: none;
+    padding: 0;
+  }
+
+  #leaderboardList li {
+    background-color: #f4f4f4;
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Shop (left) -->
+<div id="shop">
+  <h2>Shop</h2>
+  <div class="shop-item" id="clickPowerItem" onclick="buyUpgrade('clickPower')">
+    Increase Click Power (+1) - Cost: <span id="clickPowerCost">10</span>
+  </div>
+  <div class="shop-item" id="autoClickItem" onclick="buyUpgrade('autoClick')">
+    Auto Click (+1/sec) - Cost: <span id="autoClickCost">50</span>
+  </div>
+</div>
+
+<!-- Main clicker area -->
+<div id="main">
+  <h1>Score: <span id="score">0</span></h1>
+  <button onclick="clicker()">Click me!</button>
+  <button onclick="resetScore()">Reset Score</button>
+</div>
+
+<!-- Leaderboard (right) -->
+<div id="leaderboard">
+  <h2>Leaderboard</h2>
+  <ul id="leaderboardList"></ul>
+</div>
+
+<script>
+  // Prompt for username on first load
+  let username = localStorage.getItem('username');
+  if (!username) {
+    username = prompt("Enter your username:");
+    if (!username) username = "Player";
+    localStorage.setItem('username', username);
+  }
+
+  // Load saved data or initialize
+  let score = parseInt(localStorage.getItem('score')) || 0;
+  let clickPower = parseInt(localStorage.getItem('clickPower')) || 1;
+  let autoClick = parseInt(localStorage.getItem('autoClick')) || 0;
+  let clickPowerCost = parseInt(localStorage.getItem('clickPowerCost')) || 10;
+  let autoClickCost = parseInt(localStorage.getItem('autoClickCost')) || 50;
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('clickPowerCost').textContent = clickPowerCost;
+  document.getElementById('autoClickCost').textContent = autoClickCost;
+
+  // Leaderboard (localStorage)
+  function updateLeaderboard() {
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+
+    // Save current score with username
+    let existing = leaderboard.find(e => e.username === username);
+    if (existing) {
+      if (score > existing.score) existing.score = score; // update only if higher
+    } else {
+      leaderboard.push({username: username, score: score});
+    }
+
+    leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0, 5); // Top 5
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '';
+    leaderboard.forEach(entry => {
+      const li = document.createElement('li');
+      li.textContent = `${entry.username}: ${entry.score}`;
+      list.appendChild(li);
+    });
+  }
+
+  updateLeaderboard();
+
+  // Clicker function
+  function clicker() {
+    score += clickPower;
+    document.getElementById('score').textContent = score;
+    localStorage.setItem('score', score);
+    updateLeaderboard();
+  }
+
+  // Reset score
+  function resetScore() {
+    score = 0;
+    clickPower = 1;
+    autoClick = 0;
+    clickPowerCost = 10;
+    autoClickCost = 50;
+    document.getElementById('score').textContent = score;
+    document.getElementById('clickPowerCost').textContent = clickPowerCost;
+    document.getElementById('autoClickCost').textContent = autoClickCost;
+    localStorage.setItem('score', score);
+    localStorage.setItem('clickPower', clickPower);
+    localStorage.setItem('autoClick', autoClick);
+    localStorage.setItem('clickPowerCost', clickPowerCost);
+    localStorage.setItem('autoClickCost', autoClickCost);
+    updateLeaderboard();
+  }
+
+  // Shop system
+  function buyUpgrade(type) {
+    if(type === 'clickPower' && score >= clickPowerCost) {
+      score -= clickPowerCost;
+      clickPower += 1;
+      clickPowerCost += 10;
+      document.getElementById('clickPowerCost').textContent = clickPowerCost;
+    } else if(type === 'autoClick' && score >= autoClickCost) {
+      score -= autoClickCost;
+      autoClick += 1;
+      autoClickCost += 10;
+      document.getElementById('autoClickCost').textContent = autoClickCost;
+    }
+    document.getElementById('score').textContent = score;
+    localStorage.setItem('score', score);
+    localStorage.setItem('clickPower', clickPower);
+    localStorage.setItem('autoClick', autoClick);
+    localStorage.setItem('clickPowerCost', clickPowerCost);
+    localStorage.setItem('autoClickCost', autoClickCost);
+    updateLeaderboard();
+  }
+
+  // Auto clicker interval
+  setInterval(() => {
+    if(autoClick > 0) {
+      score += autoClick;
+      document.getElementById('score').textContent = score;
+      localStorage.setItem('score', score);
+      updateLeaderboard();
+    }
+  }, 1000);
+</script>
+
+</body>
+</html>
+
